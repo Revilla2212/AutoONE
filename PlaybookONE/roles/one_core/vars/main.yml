@@ -1,0 +1,6 @@
+---
+mysql_root_user: root
+mysql_root_pwd: Test7357test!
+oneadmin_mysql_user: oneadmin
+oneadmin_mysql_pwd: Test7357test!
+oneadmin_pwd: oneadmin

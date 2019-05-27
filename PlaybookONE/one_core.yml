@@ -1,0 +1,12 @@
+---
+- hosts: one-mgmt
+  user: root
+  vars_files:
+    - config.yml
+  roles:
+# If you want to configure iptables too, set your desired configuration in ./roles/iptables/templates/iptables.j2
+#    - iptables
+    - yumrepos
+    - one_core
+    - one_sunstone
+

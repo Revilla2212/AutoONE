@@ -1,0 +1,6 @@
+---
+- name: restart nginx
+  action: service name=nginx state=restarted
+
+- name: restart opennebula-sunstone
+  action: service name=opennebula-sunstone state=restarted

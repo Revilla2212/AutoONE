@@ -1,0 +1,11 @@
+#[one-mgmt]
+#192.168.122.131
+#147.83.192.54 ansible_user=root ansible_python_interpreter=/usr/bin/python3 ansible_ssh_port=2382
+
+[one-mgmt]
+#192.168.122.131
+147.83.192.54 ansible_user=root ansible_ssh_port=2382
+
+[one-kvmnodes]
+#147.83.192.54 ansible_user=root ansible_ssh_port=2392 listen_addr="eth0"
+10.4.196.109 ansible_user=root listen_addr="ens192"

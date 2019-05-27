@@ -1,0 +1,6 @@
+- hosts: one-kvmnodes
+  user: root
+  roles:
+    #- iptables
+    - { role: yumrepos, repos: [opennebula]}
+    - one_kvmnode

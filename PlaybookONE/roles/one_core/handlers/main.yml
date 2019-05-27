@@ -1,0 +1,11 @@
+---
+
+- name: start opennebula
+  action: service name=opennebula state=started
+- name: start opennebula-sunstone
+  action: service name=opennebula-sunstone state=started
+
+- name: restart opennebula
+  action: service name=opennebula state=restarted
+- name: restart opennebula-sunstone
+  action: service name=opennebula-sunstone state=restarted

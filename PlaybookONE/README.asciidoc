@@ -1,0 +1,56 @@
+== Opennebula playbooks
+This repository contains Ansible playbooks to deploy Opennebula v5.8.0 (or 5.6.1) supported on *CentOS 7* and *KVM* as hypervisor.
+
+This inventory includes an optional role to configure iptables plus the option to add some
+necessary inventories. Also, one_core configuration includes a reverse proxy set up with nginx.
+
+Things like SSL, LDAP, etc.. are not yet included. 
+
+== How to use
+Edit the _hosts_ file and add your hosts and their parameters.
+
+[NOTE]
+First run the management host playbook so it'll use the generated SSH keys later to bind the management host with hypervisor nodes.
+
+=== Edit the inventory
+Edit the _hosts_ file. Put your management host under [one-mgmt]
+
+[bash]
+----
+[one-mgmt]
+#Example IP
+10.20.10.20
+#Add parameters if needed (like ansible_user, ansible_ssh_port, listen_addr, etc)
+----
+
+Put all your hypervisor hosts under [one-kvmnodes]
+
+[bash]
+----
+[one-kvmnodes]
+#Example IP
+10.20.10.21
+#Add parameters if needed (like ansible_user, ansible_ssh_port, listen_addr, etc)
+----
+
+=== Run the playbooks
+Execute the one_core playbook to deploy the management OpenNebula node with Suntone Web interface protected by nginx as a reverse proxy.
+
+[bash]
+---- 
+ansible-playbook -i hosts one_core.yml -u root -k
+----
+
+Next you can deploy the hypervisor nodes
+
+[bash]
+----
+ansible-playbook -i hosts one_kvmnode.yml -u root -k
+----
+
+[NOTE]
+-i indicates inventory +
+-u indicates the user you are connecting to +
+-k will force password input
+
+Author: Alejandro Revilla (alejandro.revilla@upcnet.es)

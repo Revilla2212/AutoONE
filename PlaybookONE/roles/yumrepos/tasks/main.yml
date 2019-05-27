@@ -1,0 +1,15 @@
+- name: enable selected repos
+  copy: src="opennebula.repo" dest="/etc/yum.repos.d/opennebula.repo" owner=root group=root mode=644
+
+- name: install epel
+  action: yum name='epel-release' state=installed
+
+- name: rpm check package
+  command: rpm -q epel-release-7-11.noarch
+  register: rpm_epel_check
+  failed_when: no
+
+- name: rpm de epel-release
+  command: rpm -ivh 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm'
+  when: rpm_epel_check.rc == 1
+

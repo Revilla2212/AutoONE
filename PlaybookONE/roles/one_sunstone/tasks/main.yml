@@ -1,0 +1,53 @@
+---
+- name: install packages 
+  action: yum name={{ item }} state=installed
+  with_items:
+    - opennebula-sunstone
+    - nginx
+    - memcached
+
+- name: Install Sinatra, Memcache-client, builder, scrub_rb gem (unexpected behaviour with gem module)
+  shell: |
+    gem install sinatra -v 1.4.8
+    gem install memcache-client -v 1.8.5
+    gem install builder -v 3.2.3
+    gem install scrub_rb -v 1.0.1
+
+- name: install sunstone required gems
+  action: gem name={{ item.name }} state=present version="{{ item.version }}"
+  with_items:
+    - { name: 'rack', version: '1.6.10' }
+    - { name: 'tilt', version: '2.0.9' }
+    - { name: 'rack-protection', version: '1.5.5' }
+#    - { name: 'memcache-client', version: '1.8.5' }
+    - { name: 'zendesk_api', version: '1.16.0' }
+
+
+- name: start and enable nginx and memcache
+  action: service name={{ item }} state=started enabled=true
+  with_items:
+    - nginx
+    - memcached
+    - opennebula-sunstone
+
+- name: copy nginx.conf
+  action: copy src=nginx.conf.j2 dest=/etc/nginx/nginx.conf owner=root group=root mode=644
+
+- name: copy opennebula.conf
+  action: copy src=opennebula.conf.j2 dest=/etc/nginx/conf.d/opennebula.conf owner=root group=root mode=644
+ 
+- name: copy sunstone-server.conf
+  action: copy src=sunstone-server.conf.5.8.j2 dest=/etc/one/sunstone-server.conf owner=root group=oneadmin mode=640
+
+- name: Change owner of all files in /var/log/one/
+  shell: |
+    chown oneadmin:oneadmin /var/log/one/*     
+
+- name: Restart services ONE, sunstone, nginx
+  service: 
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+    - opennebula
+    - opennebula-sunstone
+    - nginx

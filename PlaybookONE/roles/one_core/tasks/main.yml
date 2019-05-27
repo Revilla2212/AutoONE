@@ -1,0 +1,127 @@
+---
+- name: Set SELinux in Permissive mode
+  action: selinux policy=targeted state=permissive
+
+- name: install Opennebula packages
+  yum:  
+    name:
+      - opennebula-server
+      - opennebula-sunstone
+      - opennebula-ruby
+      - opennebula-gate
+      - opennebula-flow
+    state: present
+    skip_broken: true
+
+- name: install required packages
+  action: yum name={{ packages_to_install }} state=installed
+
+- name: rpm check package mysql
+  command: rpm -q mysql57-community-release-el7-9.noarch
+  register: rpm_mysql_check
+  failed_when: no
+
+- name: download mysql
+  shell: |
+    wget https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
+    rpm -ivh mysql57-community-release-el7-9.noarch.rpm
+  when: rpm_mysql_check.rc == 1
+
+- name: install mysql
+  yum:
+    name:
+      - mysql-server
+      - MySQL-python    
+    state: present
+
+- name: install specific gem eventmachine
+  action: gem name=eventmachine build_flags="--platform ruby" state=present version='1.2.5'
+
+- name: install gems for core specific version
+  action: gem name={{ item.name }} state=present version="{{ item.version }}"
+  with_items:
+    - { name: 'sqlite3', version: '1.3.13' }
+    - { name: 'nokogiri', version: '1.5.11' }
+    - { name: 'net-ldap', version: '0.16.1' }
+    - { name: 'sequel', version: '5.7.1' }
+#    - { name: 'thin', version: '1.7.2' }
+    - { name: 'uuidtools', version: '2.1.5' }
+    - { name: 'curb', version: '0.9.4' }
+    - { name: 'configparser', version: '0.1.7' }
+#    - { name: 'azure', version: '0.7.10' }
+    - { name: 'azure-core', version: '0.1.14' }
+    - { name: 'parse-cron', version: '0.1.4' }
+    - { name: 'amazon-ec2', version: '0.9.17' }
+    - { name: 'aws-sdk', version: '2.11.39' }
+    - { name: 'aws-sdk-core', version: '2.11.39' }
+    - { name: 'aws-sdk-resources', version: '2.11.39' }
+    - { name: 'aws-sigv4', version: '1.0.2' }
+    - { name: 'ox', version: '2.9.2' }
+    - { name: 'mysql2', version: '0.5.1' }
+    - { name: 'bundler', version: '1.17.1' }
+    - { name: 'treetop', version: '1.6.10' }
+  
+
+- name: start MySQL server
+  action: service name=mysqld state=started enabled=yes
+
+- name: get mysql root temporary password
+  shell: cat /var/log/mysqld.log | grep "A temporary password is generated for" | awk '{print $NF}'
+  register: temp_pass
+
+# grep "127.0.0.1" meaning is to know if the mysql users setup has been done before or not, so the playbook won't fail if you run it twice.
+
+- name: check if mysql set up has been done before
+  shell: mysql -e 'SELECT User, Host FROM mysql.user;' | grep "127.0.0.1"
+  register: dbstatus
+  failed_when: no
+  
+
+- name: set mysql root@localhost password
+  shell: |
+    mysql -u root -p'{{ temp_pass.stdout }}' -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_pwd }}';" --connect-expired-password
+  when: dbstatus.rc != 0
+    
+- name: set the MySQL root account credentials
+  action: mysql_user login_user='root' login_password={{ mysql_root_pwd }} name=root host={{ item }} password={{ mysql_root_pwd }}
+  with_items:
+    - ::1
+    - 127.0.0.1
+    - localhost
+  when: dbstatus.rc != 0
+
+- name: set my.cnf for root
+  action: template src="my.cnf.j2" dest=/root/.my.cnf owner=root mode=600
+
+- name: check if opennebula user has been created before
+  shell: mysql -e 'SELECT User FROM mysql.user;' | grep "opennebula"
+  register: oneuserstatus
+  failed_when: no
+
+- name: create opennebula mysql user
+  action: mysql_user login_user={{ mysql_root_user }} login_password={{ mysql_root_pwd }} name={{ oneadmin_mysql_user }} password={{ oneadmin_mysql_pwd }} priv="opennebula.*:ALL"
+  when: oneuserstatus.rc != 0
+
+- name: deploy oned.conf
+  action: template src="oned.conf.5.8.j2" dest=/etc/one/oned.conf owner=root group=oneadmin mode=0640
+  notify: restart opennebula
+
+- name: Ensures /root/.one/ dir exists
+  file: path=/root/.one state=directory
+
+- name: set oneadmin pwd
+  action: template src=one_auth.j2 dest={{ item }} owner=oneadmin group=oneadmin mode=0600
+  with_items:
+    - /var/lib/one/.one/one_auth
+    - /root/.one/one_auth
+  notify:
+    - start opennebula
+
+- name: Ensure ONE is running
+  action: service name=opennebula state=started enabled=true
+
+- name: create openssh keys for oneadmin
+  action: user name=oneadmin generate_ssh_key=yes ssh_key_bits=2048
+
+- name: set ssh config file for oneadmin
+  action: copy src=files/config dest=/var/lib/one/.ssh/config owner=oneadmin group=oneadmin mode=0600
