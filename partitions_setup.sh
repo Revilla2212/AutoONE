@@ -1,3 +1,5 @@
+# Author: Alejandro Revilla
+#----------------------------------------------------------------
 #!/bin/bash
 STATUS_CANCEL=1
 STATUS_OK=0
@@ -53,17 +55,17 @@ if [[ $discaux != $disc ]];then echo -e "\nCancel·lant l'operació, tancant el 
 exit $STATUS_CANCEL;
 fi
 
-#sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | sudo fdisk ${disc}
-#  n # new partition
-#  p # primary partition
-#  1 # partition number 1
-#    # default - start at beginning of disk
-#    # default - end at the end of disk
-#  p # print the disk information
-#  w # write the partition table
-#  q # and we're done
-#EOF
-#pvcreate /dev/$disc"1"
+sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | sudo fdisk ${disc}
+  n # new partition
+  p # primary partition
+  1 # partition number 1
+    # default - start at beginning of disk
+    # default - end at the end of disk
+  p # print the disk information
+  w # write the partition table
+  q # and we're done
+EOF
+pvcreate /dev/$disc"1"
 
 ##########################################################################
 ##############################Partició creada#############################
@@ -86,20 +88,20 @@ do
     fi
 done
 
-#vgcreate "vg_"$vgname /dev/$disc"1"
-#lvcreate -l 55%VG -n lv_dades vg_$vgname
-#lvcreate -l 45%VG -n lv_backup vg_$vgname
-#mkfs.ext4 /dev/vg_$vgname/lv_dades
-#mkfs.ext4 /dev/vg_$vgname/lv_backup
+vgcreate "vg_"$vgname /dev/$disc"1"
+lvcreate -l 55%VG -n lv_dades vg_$vgname
+lvcreate -l 45%VG -n lv_backup vg_$vgname
+mkfs.ext4 /dev/vg_$vgname/lv_dades
+mkfs.ext4 /dev/vg_$vgname/lv_backup
 
 echo -e "\nCreat el volume group vg_$vgname i els logical volumes lv_dades(55%) i lv_backup(45%).\nCreats els file systems als lv anteriors.\n"
 
-#if ! [ -d /Dades ];then sudo mkdir /Dades; fi
-#if ! [ -d /backup ];then sudo mkdir /backup; fi
+if ! [ -d /Dades ];then sudo mkdir /Dades; fi
+if ! [ -d /backup ];then sudo mkdir /backup; fi
 
-#echo -e "\n/dev/vg_$vgname/lv_dades /Dades                 ext4     defaults  0 0\n/dev/vg_$vgname/lv_backup  /backup                  ext4     defaults  0 0" >> /etc/fstab
+echo -e "\n/dev/vg_$vgname/lv_dades /Dades                 ext4     defaults  0 0\n/dev/vg_$vgname/lv_backup  /backup                  ext4     defaults  0 0" >> /etc/fstab
 
-#mount -a
+mount -ai
 
 echo -e "\nCreats els directoris /Dades i /backup en cas de que no existissin prèviament, modificat l'arxiu fstab per afegir els lvm i fet el mount\n"
 
